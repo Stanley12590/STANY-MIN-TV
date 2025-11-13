@@ -10,46 +10,68 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    checkUser()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(checkUser)
-    
+    // Get initial session
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('Initial session:', session)
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('Error getting session:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initializeAuth()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    )
+
     return () => subscription.unsubscribe()
   }, [])
 
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user || null)
-    } catch (error) {
-      console.error('Error checking user:', error)
-      setUser(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const login = async (email, password) => {
     try {
+      setLoading(true)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
       
-      if (error) throw error
+      if (error) {
+        console.error('Login error:', error)
+        throw error
+      }
       
+      console.log('Login successful:', data)
       setUser(data.user)
       return { success: true }
     } catch (error) {
+      console.error('Login failed:', error)
       return { success: false, error: error.message }
+    } finally {
+      setLoading(false)
     }
   }
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut()
+      setLoading(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
       setUser(null)
     } catch (error) {
-      console.error('Error logging out:', error)
+      console.error('Logout error:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
