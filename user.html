@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STANY MIN TV</title>
+    <link rel="stylesheet" href="user.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <!-- Video.js for M3U8 playback (example, replace with your preferred player) -->
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <script src="https://unpkg.com/@videojs/http-streaming@3.3.0/dist/videojs-http-streaming.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div id="auth-screens">
+        <!-- Login Screen -->
+        <div id="login-screen" class="auth-card">
+            <h2>Login to STANY MIN TV</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <p>Don't have an account? <a href="#" id="show-register">Register</a></p>
+            <p><a href="#" id="show-forgot-password">Forgot Password?</a></p>
+        </div>
+
+        <!-- Register Screen -->
+        <div id="register-screen" class="auth-card hidden">
+            <h2>Register for STANY MIN TV</h2>
+            <form id="register-form">
+                <input type="text" id="register-name" placeholder="Full Name" required>
+                <input type="email" id="register-email" placeholder="Email" required>
+                <input type="password" id="register-password" placeholder="Password" required>
+                <button type="submit">Register</button>
+            </form>
+            <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+        </div>
+
+        <!-- Forgot Password Screen -->
+        <div id="forgot-password-screen" class="auth-card hidden">
+            <h2>Reset Password</h2>
+            <form id="forgot-password-form">
+                <input type="email" id="forgot-email" placeholder="Enter your email" required>
+                <button type="submit">Send Reset Link</button>
+            </form>
+            <p><a href="#" id="back-to-login">Back to Login</a></p>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden">
+        <!-- Top Search and Category Filter -->
+        <header class="app-header">
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search movies or channels...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="category-filter">
+                <select id="category-select">
+                    <option value="all">All Categories</option>
+                    <!-- Categories will be dynamically loaded here -->
+                </select>
+            </div>
+        </header>
+
+        <!-- Home Page -->
+        <section id="home-page" class="app-section active">
+            <div class="carousel">
+                <h2>Featured Movies</h2>
+                <div class="movie-carousel" id="featured-movies-carousel">
+                    <!-- Featured movies will be loaded here -->
+                </div>
+            </div>
+
+            <div class="movie-list-section">
+                <h2>All Movies</h2>
+                <div id="all-movies-grid" class="movie-grid">
+                    <!-- All movies will be loaded here -->
+                </div>
+            </div>
+
+            <div class="live-channels-section">
+                <h2>Live TV Channels</h2>
+                <div id="live-channels-grid" class="channel-grid">
+                    <!-- Live Channels will be loaded here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Movie Details Page -->
+        <section id="movie-details-page" class="app-section hidden">
+            <button class="back-button" id="back-to-home-from-movie"><i class="fas fa-arrow-left"></i> Back</button>
+            <div id="movie-details-content" class="details-content">
+                <!-- Movie details will be dynamically loaded here -->
+            </div>
+        </section>
+
+        <!-- Channel Player Page -->
+        <section id="channel-player-page" class="app-section hidden">
+            <button class="back-button" id="back-to-home-from-channel"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 id="channel-player-title"></h2>
+            <div class="video-container">
+                <video id="channel-player" class="video-js vjs-default-skin" controls preload="auto" width="100%" height="auto" data-setup='{}'>
+                    <source src="" type="application/x-mpegURL">
+                    <!-- Fallback for browsers that don't support HLS natively -->
+                </video>
+            </div>
+        </section>
+
+
+        <!-- Profile Page -->
+        <section id="profile-page" class="app-section hidden">
+            <h2>Your Profile</h2>
+            <div class="profile-info">
+                <p><strong>Name:</strong> <span id="profile-name"></span></p>
+                <p><strong>Email:</strong> <span id="profile-email"></span></p>
+                <p><strong>Account Status:</strong> <span id="profile-status"></span></p>
+                <p><strong>Remaining Usage:</strong> <span id="profile-usage-duration"></span></p>
+            </div>
+            <button id="profile-logout-btn" class="logout-button">Logout</button>
+            <div class="floating-whatsapp-icon">
+                <a href="#" target="_blank" id="whatsapp-link"><i class="fab fa-whatsapp"></i></a>
+            </div>
+        </section>
+
+        <!-- Loading Indicator -->
+        <div id="loading-spinner" class="loading-spinner hidden">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast-notification" class="toast-notification hidden">
+            <p id="toast-message"></p>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <ul>
+                <li class="nav-item active" data-target="home-page"><i class="fas fa-home"></i> <span>Home</span></li>
+                <li class="nav-item" data-target="categories-page"><i class="fas fa-tags"></i> <span>Categories</span></li>
+                <li class="nav-item" data-target="profile-page"><i class="fas fa-user"></i> <span>Profile</span></li>
+                <li class="nav-item" id="logout-nav-btn"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></li>
+            </ul>
+        </nav>
+    </div>
+
+    <script src="user.js"></script>
+</body>
+  </html>
