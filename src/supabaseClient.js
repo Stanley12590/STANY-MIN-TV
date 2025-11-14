@@ -1,82 +1,14 @@
-import { createClient } from '@supabase/supabase-js'
 
-// Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+import { createBrowserClient } from "@supabase/ssr";
 
-// Validate environment variables
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing Supabase environment variables:')
-  console.log('VITE_SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing')
-  console.log('VITE_SUPABASE_ANON_KEY:', supabaseKey ? '✅ Set' : '❌ Missing')
-  throw new Error('Supabase environment variables are missing')
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
-console.log('🔗 Initializing Supabase client...')
-
-// Create Supabase client with additional configuration
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storage: localStorage,
-    flowType: 'pkce'
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-})
-
-// Test connection on startup
-export const testConnection = async () => {
-  try {
-    const { data, error } = await supabase.auth.getSession()
-    if (error) {
-      console.error('❌ Supabase connection test failed:', error)
-      return false
-    }
-    console.log('✅ Supabase connected successfully')
-    return true
-  } catch (error) {
-    console.error('❌ Supabase connection test error:', error)
-    return false
-  }
-}
-
-// Initialize connection test
-testConnection()
-
-// Database Service with complete CRUD operations
-export const databaseService = {
-  // ==================== AUTH FUNCTIONS ====================
-  async signIn(email, password) {
-    try {
-      console.log('🔐 Attempting login for:', email)
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password
-      })
-      
-      if (error) {
-        console.error('❌ Login error:', error)
-        return { data: null, error }
-      }
-      
-      console.log('✅ Login successful for:', email)
-      return { data, error: null }
-    } catch (error) {
-      console.error('❌ Login exception:', error)
-      return { data: null, error }
-    }
-  },
-
-  async signOut() {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
+export const createClient = () =>
+  createBrowserClient(
+    supabaseUrl!,
+    supabaseKey!,
+  );
         console.error('❌ Logout error:', error)
         return { error }
       }
